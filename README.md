@@ -69,8 +69,10 @@ ttsCommand: kokoro-tts {in} {out} --voice af_heart
 
 ## Every morning
 
+From a clone of this repo:
+
 ```bash
-npx rundown schedule --at 08:00 --weekdays
+node src/cli.ts schedule --at 08:00 --weekdays
 ```
 
 This writes a launchd job that runs `pi -p /rundown` and prints the two commands to turn it on. Scheduled runs have nobody to confirm the upload, so they only publish if you set `autoPublish: true`.
@@ -78,8 +80,8 @@ This writes a launchd job that runs `pi -p /rundown` and prints the two commands
 ## Without an agent
 
 ```bash
-npx rundown gather                              # today's material as JSON
-npx rundown produce examples/script.json --dry-run  # audio only
+node src/cli.ts gather                                  # today's material as JSON
+node src/cli.ts produce examples/script.json --dry-run  # audio only
 ```
 
 ## Files
