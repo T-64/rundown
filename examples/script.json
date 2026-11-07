@@ -1,0 +1,19 @@
+{
+  "title": "Morning Rundown: a test episode",
+  "summary": "A short test of the rundown pipeline: weather, one story, and a goodbye.",
+  "segments": [
+    {
+      "title": "Weather",
+      "text": "Good morning. It's Saturday the eighth of November. In Stuttgart it's four degrees and foggy, clearing to a high of nine this afternoon, with a small chance of rain."
+    },
+    {
+      "title": "News",
+      "text": "One story this morning. The open-source agent pi has moved to a new home on npm, under the earendil works name. Old installs keep working, but new extensions should import from the new package.",
+      "links": ["https://www.npmjs.com/package/@earendil-works/pi-coding-agent"]
+    },
+    {
+      "title": "Close",
+      "text": "That's all for today. Have a good weekend."
+    }
+  ]
+}
