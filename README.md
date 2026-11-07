@@ -26,11 +26,11 @@ brew install ffmpeg
 pi install git:github.com/T-64/pi-rundown
 ```
 
-For uploading, install Save to Spotify and log in with your own account:
+Uploading uses Save to Spotify. If you have the Spotify desktop app on macOS you already have it: it ships inside the app, and rundown finds it there. Otherwise install it. Either way, log in once with your own account:
 
 ```bash
-curl -fsSL https://saveto.spotify.com/install.sh | bash
-save-to-spotify auth login
+curl -fsSL https://saveto.spotify.com/install.sh | bash   # skip if Spotify.app is installed
+save-to-spotify auth login   # or /Applications/Spotify.app/Contents/MacOS/save-to-spotify auth login
 ```
 
 Without it, rundown still makes the MP3 and tells you where it is.

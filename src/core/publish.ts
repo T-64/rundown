@@ -2,15 +2,38 @@
 // (https://github.com/spotify/save-to-spotify). We never talk to Spotify's
 // APIs directly here, and never send Spotify data to the model.
 
-import { execFile } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { promisify } from 'node:util';
 
 const run = promisify(execFile);
-const BIN = process.env.SAVE_TO_SPOTIFY_BIN ?? 'save-to-spotify';
+
+// Use save-to-spotify from PATH if it's installed. Otherwise fall back to the
+// copy that ships inside Spotify's desktop app on macOS (same open-source CLI,
+// signed by Spotify), so people who have Spotify installed needn't add anything.
+const BUNDLED = [
+	'/Applications/Spotify.app/Contents/MacOS/save-to-spotify',
+	'/Applications/Studio by Spotify Labs.app/Contents/MacOS/save-to-spotify',
+];
+
+function findBin(): string {
+	if (process.env.SAVE_TO_SPOTIFY_BIN) return process.env.SAVE_TO_SPOTIFY_BIN;
+	try {
+		return execFileSync('/usr/bin/which', ['save-to-spotify'], { encoding: 'utf8' }).trim();
+	} catch {
+		return BUNDLED.find((p) => existsSync(p)) ?? 'save-to-spotify';
+	}
+}
+
+export const BIN = findBin();
 
 async function sts(args: string[], timeoutMs = 10 * 60_000) {
 	try {
-		const { stdout } = await run(BIN, ['--json', ...args], { timeout: timeoutMs, maxBuffer: 10_000_000 });
+		const { stdout } = await run(BIN, ['--json', ...args], {
+			timeout: timeoutMs,
+			maxBuffer: 10_000_000,
+			env: { ...process.env, SAVE_TO_SPOTIFY_NO_UPDATE_CHECK: '1' },
+		});
 		return JSON.parse(stdout || '{}');
 	} catch (err: any) {
 		if (err.code === 'ENOENT') {
@@ -30,7 +53,7 @@ async function sts(args: string[], timeoutMs = 10 * 60_000) {
 export async function loggedIn(): Promise<boolean> {
 	try {
 		const s = await sts(['auth', 'status'], 20_000);
-		return Boolean(s.logged_in ?? s.authenticated ?? s.ok ?? true);
+		return s.authenticated === true;
 	} catch {
 		return false;
 	}
@@ -75,7 +98,7 @@ export async function upload(opts: {
 }
 
 export async function waitReady(episodeId: string) {
-	await sts(['episodes', 'status', episodeId, '--wait', '8m'], 9 * 60_000);
+	await sts(['episodes', 'status', episodeId, '--wait=8m'], 9 * 60_000);
 }
 
 export async function setTimeline(episodeId: string, file: string) {
