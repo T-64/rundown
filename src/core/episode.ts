@@ -8,7 +8,7 @@ import { EPISODES_DIR, loadPrefs, loadState, saveState, type Prefs } from './con
 import { recent, record } from './history.ts';
 import { headlines, weather, type Headline, type Weather } from './sources.ts';
 import { concat, duration, speak, toMp3 } from './audio.ts';
-import { setTimeline, upload, waitReady } from './publish.ts';
+import { findShow, setTimeline, upload, waitReady } from './publish.ts';
 
 export interface Segment {
 	title: string;
@@ -139,16 +139,19 @@ export async function produce(
 
 	if (opts.publish) {
 		const state = loadState();
+		// Reuse the show if it already exists, even if state.json was lost.
+		const showId = state.showId ?? (await findShow(prefs.show));
 		say('Uploading with save-to-spotify');
 		const up = await upload({
 			file: mp3,
 			title: script.title,
 			summary: script.summary,
 			language: prefs.language,
-			showId: state.showId,
-			newShow: state.showId ? undefined : prefs.show,
+			showId,
+			newShow: showId ? undefined : prefs.show,
 		});
-		if (up.showId && up.showId !== state.showId) saveState({ ...state, showId: up.showId });
+		const saved = showId ?? up.showId ?? (await findShow(prefs.show));
+		if (saved && saved !== state.showId) saveState({ ...state, showId: saved });
 		say('Waiting for Spotify to process the episode');
 		await waitReady(up.episodeId);
 		say('Adding chapters and links');

@@ -68,6 +68,13 @@ function pick(o: any, ...keys: string[]): string | undefined {
 	return undefined;
 }
 
+// Shows made through save-to-spotify, matched by title.
+export async function findShow(title: string): Promise<string | undefined> {
+	const out = await sts(['shows']);
+	const shows: any[] = out.shows ?? [];
+	return shows.find((s) => s.title === title)?.show_uri;
+}
+
 export interface Uploaded {
 	episodeUri: string;
 	episodeId: string;
