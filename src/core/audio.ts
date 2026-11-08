@@ -1,14 +1,18 @@
 // Text to speech, one segment at a time, then everything joined into one MP3.
 //
 // Engines:
-//   say      macOS built-in, nothing to install. Good enough to test with.
-//   command  any program you like, e.g. a local Kokoro wrapper. The command
-//            gets {in} (a UTF-8 text file) and {out} (where to write audio).
+//   say      macOS built-in, nothing to install. Fine for testing.
+//   piper    fast local voices on CPU, dozens of languages (pip install piper-tts)
+//   openai   any OpenAI-compatible /v1/audio/speech server: OpenAI, or an open
+//            model you host yourself (Kokoro, Chatterbox, Qwen3-TTS, CosyVoice)
+//   command  any program; gets {in} (a UTF-8 text file), {out}, {voice}
 
 import { execFile } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
+import type { Engine } from './config.ts';
 
 const run = promisify(execFile);
 
@@ -16,9 +20,13 @@ const run = promisify(execFile);
 const PCM = ['-ar', '24000', '-ac', '1', '-c:a', 'pcm_s16le'];
 
 export interface TtsOptions {
-	engine: 'say' | 'command';
+	engine: Engine;
 	voice?: string;
 	command?: string;
+	piperDir?: string;
+	url?: string;
+	model?: string;
+	keyEnv?: string;
 }
 
 async function ffmpeg(args: string[]) {
@@ -53,17 +61,44 @@ async function speakOnce(text: string, out: string, opts: TtsOptions) {
 	const input = out.replace(/\.wav$/, '.txt');
 	writeFileSync(input, text);
 	const raw = out.replace(/\.wav$/, '.raw');
-	if (opts.engine === 'say') {
-		const aiff = raw + '.aiff';
-		await run('say', [...(opts.voice ? ['-v', opts.voice] : []), '-o', aiff, '-f', input]);
-		await ffmpeg(['-i', aiff, ...PCM, out]);
-		return;
-	}
-	if (!opts.command) throw new Error('tts is "command" but ttsCommand is empty');
 	const audio = raw + '.audio';
-	const cmd = opts.command.replaceAll('{in}', JSON.stringify(input)).replaceAll('{out}', JSON.stringify(audio));
-	await run('/bin/sh', ['-c', cmd]);
-	await ffmpeg(['-i', audio, ...PCM, out]);
+	switch (opts.engine) {
+		case 'say':
+			await run('say', [...(opts.voice ? ['-v', opts.voice] : []), '-o', audio + '.aiff', '-f', input]);
+			await ffmpeg(['-i', audio + '.aiff', ...PCM, out]);
+			return;
+		case 'piper': {
+			const dir = opts.piperDir ?? join(homedir(), '.rundown', 'voices');
+			if (!opts.voice) throw new Error('piper needs a voice, e.g. en_US-lessac-medium');
+			await run('piper', ['-m', opts.voice, '--data-dir', dir, '-i', input, '-f', audio + '.wav']);
+			await ffmpeg(['-i', audio + '.wav', ...PCM, out]);
+			return;
+		}
+		case 'openai': {
+			const base = (opts.url ?? 'https://api.openai.com').replace(/\/+$/, '');
+			const key = process.env[opts.keyEnv ?? 'OPENAI_API_KEY'];
+			const res = await fetch(`${base}/v1/audio/speech`, {
+				method: 'POST',
+				headers: { 'content-type': 'application/json', ...(key ? { authorization: `Bearer ${key}` } : {}) },
+				body: JSON.stringify({ model: opts.model ?? 'tts-1', voice: opts.voice ?? 'alloy', input: text, response_format: 'wav' }),
+			});
+			if (!res.ok) throw new Error(`TTS server ${res.status}: ${(await res.text()).slice(0, 200)}`);
+			writeFileSync(audio + '.wav', Buffer.from(await res.arrayBuffer()));
+			await ffmpeg(['-i', audio + '.wav', ...PCM, out]);
+			return;
+		}
+		case 'command': {
+			if (!opts.command) throw new Error('tts is "command" but ttsCommand is empty');
+			const q = (s: string) => `'${s.replaceAll("'", `'\\''`)}'`;
+			const cmd = opts.command
+				.replaceAll('{in}', q(input))
+				.replaceAll('{out}', q(audio))
+				.replaceAll('{voice}', q(opts.voice ?? ''));
+			await run('/bin/sh', ['-c', cmd]);
+			await ffmpeg(['-i', audio, ...PCM, out]);
+			return;
+		}
+	}
 }
 
 // Voice one segment into dir/<name>.wav, retrying each chunk once.

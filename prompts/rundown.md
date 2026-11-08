@@ -11,6 +11,7 @@ Make today's rundown episode.
    - Say where each story comes from, in passing, the way a radio host would.
    - Write for the ear: short sentences, no lists, no URLs, no markdown. Spell out numbers that would sound odd read aloud.
    - Each segment gets a short title (it becomes a chapter) and the source URLs it used.
+   - A segment may be in another language if the notes ask for it (say, a German practice segment). Set its `language`; `prefs.voiceLanguages` lists the languages that have a voice.
    - Close in one or two sentences. No sign-off catchphrase.
 3. Call `rundown_produce` with the script.
 4. Tell me the episode link and how long it is. If something failed, say what and stop.

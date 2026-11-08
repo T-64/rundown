@@ -1,25 +1,36 @@
 {
-  "name": "pi-rundown",
+  "name": "agent-rundown",
   "version": "0.1.0",
-  "description": "A daily audio briefing for your agent: gathers weather and headlines, voices the script locally, and saves the episode to your Spotify library with Save to Spotify.",
+  "description": "A daily audio briefing for your agent (pi, DSH, or anything that speaks MCP): weather and headlines in, a voiced episode with chapters out, saved to your Spotify library with Save to Spotify.",
   "type": "module",
   "license": "MIT",
   "author": "Zhaoqing Tan",
-  "keywords": ["pi-package", "pi", "agent", "podcast", "tts", "briefing"],
-  "repository": { "type": "git", "url": "git+https://github.com/T-64/pi-rundown.git" },
-  "engines": { "node": ">=22.18" },
-  "bin": { "rundown": "./src/cli.ts" },
+  "keywords": ["pi-package", "pi", "dsh", "mcp", "agent", "podcast", "tts", "briefing"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/T-64/rundown.git"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "bin": {
+    "rundown": "./src/cli.ts",
+    "rundown-mcp": "./src/mcp.ts"
+  },
   "pi": {
     "extensions": ["./src/pi/extension.ts"],
     "prompts": ["./prompts/*.md"]
   },
   "scripts": {
     "check": "tsc --noEmit",
-    "demo": "node src/cli.ts produce examples/script.json --dry-run"
+    "demo": "node src/cli.ts produce examples/script.json --dry-run",
+    "mcp": "node src/mcp.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "fast-xml-parser": "^5.2.5",
-    "yaml": "^2.8.1"
+    "yaml": "^2.8.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^24.3.0",

@@ -46,6 +46,9 @@ export default function (pi: ExtensionAPI) {
 					title: Type.String({ description: 'Short chapter title' }),
 					text: Type.String({ description: 'What the host says in this segment' }),
 					links: Type.Optional(Type.Array(Type.String(), { description: 'Source URLs used in this segment' })),
+					language: Type.Optional(
+						Type.String({ description: 'Language code if this segment is not in the episode language, e.g. "de"' }),
+					),
 				}),
 				{ minItems: 1 },
 			),
@@ -88,7 +91,7 @@ export default function (pi: ExtensionAPI) {
 			p.city = await ask('City for the weather', p.city);
 			p.minutes = Number(await ask('Length in minutes', String(p.minutes))) || p.minutes;
 			p.language = await ask('Language code', p.language);
-			p.voice = await ask('Voice (for macOS `say`, run `say -v ?` to list)', p.voice ?? '');
+			p.voices.default = await ask(`Voice for ${p.tts} (others per language in the file)`, p.voices.default ?? '');
 			p.feeds = (await ask('RSS feeds, comma separated', p.feeds.join(', ')))
 				.split(',')
 				.map((s) => s.trim())

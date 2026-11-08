@@ -4,7 +4,7 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { EPISODES_DIR, loadPrefs, loadState, saveState, type Prefs } from './config.ts';
+import { EPISODES_DIR, loadPrefs, loadState, saveState, voiceFor, type Prefs } from './config.ts';
 import { recent, record } from './history.ts';
 import { headlines, weather, type Headline, type Weather } from './sources.ts';
 import { concat, duration, speak, toMp3 } from './audio.ts';
@@ -14,6 +14,8 @@ export interface Segment {
 	title: string;
 	text: string;
 	links?: string[];
+	// Language of this segment if it differs from the episode, e.g. "de"
+	language?: string;
 }
 
 export interface Script {
@@ -24,7 +26,7 @@ export interface Script {
 
 export interface Material {
 	date: string;
-	prefs: Omit<Prefs, 'ttsCommand'>;
+	prefs: Pick<Prefs, 'show' | 'city' | 'language' | 'minutes' | 'notes'> & { voiceLanguages: string[] };
 	weather?: Weather;
 	headlines: Headline[];
 	recentEpisodes: string;
@@ -39,10 +41,17 @@ export async function gather(): Promise<Material> {
 	const [w, h] = await Promise.allSettled([weather(prefs.city), headlines(prefs.feeds)]);
 	if (w.status === 'rejected') problems.push(`weather: ${w.reason?.message ?? w.reason}`);
 	if (h.status === 'rejected') problems.push(`headlines: ${h.reason?.message ?? h.reason}`);
-	const { ttsCommand: _omit, ...shown } = prefs;
 	return {
 		date: today(),
-		prefs: shown,
+		// Only what the writer needs; engine settings stay out of the model's context.
+		prefs: {
+			show: prefs.show,
+			city: prefs.city,
+			language: prefs.language,
+			minutes: prefs.minutes,
+			notes: prefs.notes,
+			voiceLanguages: Object.keys(prefs.voices).filter((k) => k !== 'default'),
+		},
 		weather: w.status === 'fulfilled' ? w.value : undefined,
 		headlines: h.status === 'fulfilled' ? h.value : [],
 		recentEpisodes: recent(),
@@ -108,12 +117,20 @@ export async function produce(
 	mkdirSync(dir, { recursive: true });
 	writeFileSync(join(dir, 'script.json'), JSON.stringify(script, null, 2));
 
-	const tts = { engine: prefs.tts, voice: prefs.voice, command: prefs.ttsCommand };
 	const files: string[] = [];
 	const lengths: number[] = [];
 	for (const [i, seg] of script.segments.entries()) {
 		opts.signal?.throwIfAborted();
 		say(`Voicing ${i + 1}/${script.segments.length}: ${seg.title}`);
+		const tts = {
+			engine: prefs.tts,
+			voice: voiceFor(prefs, seg.language),
+			command: prefs.ttsCommand,
+			piperDir: prefs.piperDir,
+			url: prefs.ttsUrl,
+			model: prefs.ttsModel,
+			keyEnv: prefs.ttsKeyEnv,
+		};
 		const f = await speak(seg.text, dir, `seg-${String(i + 1).padStart(2, '0')}`, tts);
 		files.push(f);
 		lengths.push(await duration(f));

@@ -15,14 +15,27 @@ export const HISTORY_FILE = join(HOME, 'history.md');
 export const STATE_FILE = join(HOME, 'state.json');
 export const EPISODES_DIR = join(HOME, 'episodes');
 
+export type Engine = 'say' | 'piper' | 'openai' | 'command';
+
 export interface Prefs {
 	show: string;
 	city: string;
 	language: string;
 	minutes: number;
 	feeds: string[];
-	tts: 'say' | 'command';
-	voice?: string;
+	tts: Engine;
+	// Voice per language code. Segments can switch language, e.g. a German
+	// practice segment inside an English episode. "default" is the fallback.
+	voices: Record<string, string>;
+	// piper: where voice models live
+	piperDir?: string;
+	// openai: any OpenAI-compatible /v1/audio/speech server (OpenAI itself,
+	// Kokoro-FastAPI, a Chatterbox or Qwen3-TTS server on your own GPU...).
+	// The API key is read from the env var named here, never from this file.
+	ttsUrl?: string;
+	ttsModel?: string;
+	ttsKeyEnv?: string;
+	// command: any program; {in} is a text file, {out} where to write audio, {voice}
 	ttsCommand?: string;
 	autoPublish: boolean;
 	notes: string;
@@ -34,11 +47,17 @@ export const DEFAULT_PREFS: Prefs = {
 	language: 'en',
 	minutes: 5,
 	feeds: ['https://feeds.bbci.co.uk/news/world/rss.xml'],
-	tts: 'say',
-	voice: 'Samantha',
+	tts: process.platform === 'darwin' ? 'say' : 'piper',
+	voices:
+		process.platform === 'darwin'
+			? { default: 'Samantha', de: 'Anna', zh: 'Tingting' }
+			: { default: 'en_US-lessac-medium', de: 'de_DE-thorsten-medium', zh: 'zh_CN-huayan-medium' },
 	autoPublish: false,
 	notes: 'Calm and plain. No hype. Say where each story comes from.',
 };
+
+export const voiceFor = (p: Prefs, lang?: string) =>
+	p.voices[lang ?? p.language] ?? p.voices[(lang ?? p.language).split('-')[0]] ?? p.voices.default;
 
 export function ensureHome() {
 	mkdirSync(EPISODES_DIR, { recursive: true });
@@ -49,9 +68,13 @@ export function loadPrefs(): Prefs {
 	const raw = readFileSync(PREFS_FILE, 'utf8');
 	const m = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
 	const front = (m ? parse(m[1]) : {}) ?? {};
+	// Older files had a single `voice`
+	const voices = { ...DEFAULT_PREFS.voices, ...(front.voice ? { default: front.voice } : {}), ...(front.voices ?? {}) };
+	delete front.voice;
 	return {
 		...DEFAULT_PREFS,
 		...front,
+		voices,
 		feeds: Array.isArray(front.feeds) ? front.feeds : DEFAULT_PREFS.feeds,
 		notes: (m ? m[2] : raw).trim(),
 	};

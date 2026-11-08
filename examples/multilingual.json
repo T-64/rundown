@@ -1,0 +1,24 @@
+{
+  "title": "Morning Rundown: three languages",
+  "summary": "A test of per-segment languages: English, German and Chinese in one episode.",
+  "segments": [
+    {
+      "title": "Weather",
+      "text": "Good morning. It's foggy in Stuttgart this morning, four degrees, clearing up by the afternoon."
+    },
+    {
+      "title": "German practice",
+      "language": "de",
+      "text": "Heute lernen wir drei Wörter. Der Nebel. Der Frost. Die Sonne. Am Nachmittag kommt die Sonne heraus."
+    },
+    {
+      "title": "In Chinese",
+      "language": "zh",
+      "text": "今天早上斯图加特有雾，气温四度。下午天气会转晴。"
+    },
+    {
+      "title": "Close",
+      "text": "That's all for today."
+    }
+  ]
+}
