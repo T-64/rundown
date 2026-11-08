@@ -1,0 +1,21 @@
+# DSH (DeepSeek Harness) overlay: adds the rundown MCP server and its skill.
+#
+#   dsh --profile <name> --patch path/to/dsh.patch.yml
+#
+# or paste these entries into your profile's cordis.patch.yml.
+# Replace /path/to/rundown with where you cloned this repo.
+
+- insert:
+    - id: mcp-rundown
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: rundown
+        transport: stdio
+        command: node
+        args: ['/path/to/rundown/src/mcp.ts']
+        # voicing and uploading take a few minutes
+        toolCallTimeoutMs: 900000
+
+- id: skill-filesystem
+  config:
+    customSkillDirs: ['/path/to/rundown/skills']
