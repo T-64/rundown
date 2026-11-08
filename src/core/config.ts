@@ -38,6 +38,9 @@ export interface Prefs {
 	// command: any program; {in} is a text file, {out} where to write audio, {voice}
 	ttsCommand?: string;
 	autoPublish: boolean;
+	// Client ID of your own app at developer.spotify.com, for reading your
+	// library and making playlists. Not a secret (rundown uses PKCE).
+	spotifyClientId?: string;
 	notes: string;
 }
 

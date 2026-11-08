@@ -1,19 +1,19 @@
 # rundown
 
-A daily audio briefing for your agent. It gathers the weather and the day's headlines, your agent writes a short script, rundown voices it, and the episode lands in your Spotify library with chapters and source links.
+Spotify for your own agent. It can read your listening (top tracks and artists, recently played, playlists, liked songs, podcasts), make playlists, and produce a daily audio briefing: it gathers the weather and the day's headlines, your agent writes a short script, rundown voices it, and the episode lands in your Spotify library with chapters and source links.
 
 It works with [pi](https://github.com/badlogic/pi-mono) as an extension, and with [DSH](https://github.com/deepseek-ai/deepseek-harness) or any other MCP client through a small MCP server. Same package, same code.
 
 I built it after taking apart the morning podcast in Spotify's Studio app ([write-up](https://t-64.github.io/blog/spotify-studio/)). I wanted the same thing from open parts, in more than one language, and running on my own server.
 
-## How it works
+## How the briefing works
 
 1. `rundown_gather` fetches the weather from [Open-Meteo](https://open-meteo.com), headlines from the RSS feeds you pick, and the titles of your last few episodes so stories don't repeat.
 2. Your agent writes the script. Each segment becomes a chapter, and a segment can be in a different language from the rest (a German practice segment in an English episode, say).
 3. `rundown_produce` voices each segment, joins them into an MP3 with ffmpeg, and works out chapter times and when to show each source link.
 4. If you agree, it uploads the episode with [Save to Spotify](https://github.com/spotify/save-to-spotify), Spotify's open-source CLI, into a private show only you can see.
 
-Nothing from your Spotify account is read or sent to the model.
+The briefing itself doesn't read your Spotify account; the [account tools](#your-spotify-account) are separate and need their own one-time login.
 
 ## Install
 
@@ -46,7 +46,7 @@ dsh --profile headless --patch ~/rundown/examples/dsh.patch.yml "make today's ru
 claude mcp add rundown -- node ~/rundown/src/mcp.ts
 ```
 
-and point it at [`skills/rundown/SKILL.md`](skills/rundown/SKILL.md).
+and point it at the skills in [`skills/`](skills/): `rundown` for the briefing, `spotify` for your account.
 
 ## Uploading
 
@@ -57,6 +57,34 @@ save-to-spotify auth login
 ```
 
 Without it, rundown still makes the MP3 and tells you where it is.
+
+## Your Spotify account
+
+rundown can also read your Spotify account and make playlists, so your agent can answer "what have I had on repeat this month?" or "make me a playlist for a long train ride from what I like".
+
+| Tool | What it does |
+|---|---|
+| `spotify_library` | top tracks or artists (4 weeks, 6 months, all time), recently played, playlists, liked songs, saved albums, followed podcasts, now playing |
+| `spotify_playlist_items` | what's in one of your playlists |
+| `spotify_search` | search the catalogue (10 results a call) |
+| `spotify_create_playlist` | make a private playlist from tracks or episodes; asks first in pi |
+
+This uses the public Web API with your own developer app. Setup takes a couple of minutes:
+
+1. Go to the [Spotify developer dashboard](https://developer.spotify.com/dashboard) and create an app. Since February 2026 this needs Premium, and an app in development mode is limited to five users, which is plenty for yourself.
+2. In the app's settings, add the redirect URI `http://127.0.0.1:8888/callback` and tick **Web API**.
+3. Copy the Client ID into `~/.rundown/preferences.md`:
+   ```yaml
+   spotifyClientId: 0123456789abcdef...
+   ```
+   It isn't a secret: rundown logs in with PKCE, so there's no client secret anywhere.
+4. Log in once:
+   ```bash
+   node src/cli.ts spotify-login     # or /spotify-login in pi
+   node src/cli.ts spotify top_artists --range short_term
+   ```
+
+The login is kept in `~/.rundown/spotify.json` (readable only by you) and refreshed automatically. What the tools read goes to whichever model your agent uses, so pick one you're comfortable sending your listening history to.
 
 ## Voices
 

@@ -18,7 +18,7 @@
     "rundown-mcp": "./src/mcp.ts"
   },
   "pi": {
-    "extensions": ["./src/pi/extension.ts"],
+    "extensions": ["./src/pi/extension.ts", "./src/pi/spotify.ts"],
     "prompts": ["./prompts/*.md"]
   },
   "scripts": {

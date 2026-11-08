@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { HOME, ensureHome, loadPrefs, savePrefs, PREFS_FILE } from './core/config.ts';
 import { gather, produce } from './core/episode.ts';
+import { library, login, VIEWS, type Range, type View } from './core/spotify.ts';
 
 const [cmd, ...args] = process.argv.slice(2);
 const flag = (name: string) => args.includes(`--${name}`);
@@ -24,6 +25,9 @@ const usage = `rundown <command>
       --dry-run                make the audio only, don't upload
   schedule --at 08:00          write a launchd job that runs \`pi -p /rundown\`
       [--weekdays]             Monday to Friday only
+  spotify-login                connect your Spotify account (one time)
+  spotify <view>               top_tracks, top_artists, recently_played, playlists,
+      [--range short_term]     saved_tracks, saved_albums, saved_shows, now_playing
 `;
 
 function which(bin: string) {
@@ -101,6 +105,15 @@ async function main() {
 		case 'schedule':
 			schedule();
 			break;
+		case 'spotify-login':
+			console.log(`Connected to Spotify as ${await login()}.`);
+			break;
+		case 'spotify': {
+			const view = (args[0] ?? 'top_tracks') as View;
+			if (!VIEWS.includes(view)) throw new Error(`spotify <${VIEWS.join('|')}>`);
+			console.log(await library(view, { range: opt('range') as Range | undefined, limit: Number(opt('limit')) || undefined }));
+			break;
+		}
 		default:
 			console.log(usage);
 			process.exitCode = cmd ? 1 : 0;
