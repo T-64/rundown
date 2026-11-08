@@ -4,12 +4,26 @@
 
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
-import { createPlaylist, library, login, playlistItems, search, VIEWS, type Range, type SearchType, type View } from '../core/spotify.ts';
+import { clientId, createPlaylist, library, login, REDIRECT_URI,playlistItems, search, VIEWS, type Range, type SearchType, type View } from '../core/spotify.ts';
 
 const text = (s: string) => ({ content: [{ type: 'text' as const, text: s }] });
 const lit = <T extends string>(xs: readonly T[]) => Type.Union(xs.map((x) => Type.Literal(x)));
 
 export default function (pi: ExtensionAPI) {
+	// Optional: without a Client ID there's only the setup hint below.
+	if (!clientId()) {
+		pi.registerCommand('spotify-login', {
+			description: 'Connect rundown to your Spotify account (optional; see the README)',
+			handler: async (_args, ctx) => {
+				ctx.ui.notify(
+					`Spotify account tools are off. Create an app at https://developer.spotify.com/dashboard with redirect URI ${REDIRECT_URI}, put spotifyClientId: <id> in ~/.rundown/preferences.md, restart pi, and run /spotify-login again.`,
+					'info',
+				);
+			},
+		});
+		return;
+	}
+
 	pi.registerTool({
 		name: 'spotify_library',
 		label: 'Spotify: library',

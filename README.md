@@ -13,7 +13,7 @@ I built it after taking apart the morning podcast in Spotify's Studio app ([writ
 3. `rundown_produce` voices each segment, joins them into an MP3 with ffmpeg, and works out chapter times and when to show each source link.
 4. If you agree, it uploads the episode with [Save to Spotify](https://github.com/spotify/save-to-spotify), Spotify's open-source CLI, into a private show only you can see.
 
-The briefing itself doesn't read your Spotify account; the [account tools](#your-spotify-account) are separate and need their own one-time login.
+The briefing itself doesn't read your Spotify account; the [account tools](#your-spotify-account-optional) are separate and need their own one-time login.
 
 ## Install
 
@@ -58,7 +58,7 @@ save-to-spotify auth login
 
 Without it, rundown still makes the MP3 and tells you where it is.
 
-## Your Spotify account
+## Your Spotify account (optional)
 
 rundown can also read your Spotify account and make playlists, so your agent can answer "what have I had on repeat this month?" or "make me a playlist for a long train ride from what I like".
 
@@ -69,7 +69,7 @@ rundown can also read your Spotify account and make playlists, so your agent can
 | `spotify_search` | search the catalogue (10 results a call) |
 | `spotify_create_playlist` | make a private playlist from tracks or episodes; asks first in pi |
 
-This uses the public Web API with your own developer app. Setup takes a couple of minutes:
+These tools are off until you set them up, so agents of people who only want the briefing never see them. They use the public Web API with your own developer app; setup takes a couple of minutes:
 
 1. Go to the [Spotify developer dashboard](https://developer.spotify.com/dashboard) and create an app. Since February 2026 this needs Premium, and an app in development mode is limited to five users, which is plenty for yourself.
 2. In the app's settings, add the redirect URI `http://127.0.0.1:8888/callback` and tick **Web API**.

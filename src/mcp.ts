@@ -10,7 +10,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import { gather, produce, type Script } from './core/episode.ts';
 import { loggedIn } from './core/publish.ts';
-import { createPlaylist, library, playlistItems, search, VIEWS, type View } from './core/spotify.ts';
+import { clientId, createPlaylist, library, playlistItems, search, VIEWS, type View } from './core/spotify.ts';
 
 const text = (s: string) => ({ content: [{ type: 'text' as const, text: s }] });
 const minutes = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.round((ms % 60000) / 1000)).padStart(2, '0')}`;
@@ -65,7 +65,11 @@ server.registerTool(
 	},
 );
 
-// --- the person's Spotify account (needs `rundown spotify-login` once) -----
+// --- the person's Spotify account: optional --------------------------------
+// Only offered when spotifyClientId (or SPOTIFY_CLIENT_ID) is set, so agents
+// of people who haven't set it up never see these tools.
+
+if (clientId()) {
 
 server.registerTool(
 	'spotify_library',
@@ -120,5 +124,6 @@ server.registerTool(
 		return text(`Created ${r.url} with ${r.added} items${r.skipped ? ` (${r.skipped} invalid URIs skipped)` : ''}.`);
 	},
 );
+}
 
 await server.connect(new StdioServerTransport());
